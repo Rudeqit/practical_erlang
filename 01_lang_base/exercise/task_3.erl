@@ -2,13 +2,14 @@
 
 -export([distance/2]).
 
+%% -import(math, [sqrt/1],[pow/2]).
 -include_lib("eunit/include/eunit.hrl").
 
 
 %% Calculate distance between 2 points on 2D surface
 %% points are given as tuple {X, Y}, distance should be float
 distance({X1, Y1}, {X2, Y2}) ->
-    0.0.
+    math:sqrt(math:pow((X2 - X1), 2) + math:pow((Y2 -  Y1), 2)).
 
 distance_test() ->
     ?assertEqual(5.0, distance({0, 0}, {0, 5})),

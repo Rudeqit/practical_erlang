@@ -60,7 +60,21 @@ sample_champ() ->
 
 
 get_stat(Champ) ->
-    {0, 0, 0.0, 0.9}.
+    TeamStat = lists:map(fun get_team_stat/1, Champ),
+    {TotalPlayers, TotalAge, TotalRating} =
+        lists:foldl(
+            fun({TeamPlayers, TeamAge, TeamRating}, {P, A, R}) -> 
+                    {P + TeamPlayers, A + TeamAge, R + TeamRating} end, 
+                {0,0,0}, TeamStat),
+    {length(Champ), TotalPlayers, TotalAge / TotalPlayers, TotalRating / TotalPlayers}.
+
+get_team_stat({team, _, Players}) ->
+    {TeamAge, TeamRating} = 
+        lists:foldl(
+            fun({player, _, Age, Rating, _}, {TotalAge, TotalRating}) -> 
+                {TotalAge + Age, TotalRating + Rating} end,
+            {0,0}, Players),
+    {length(Players), TeamAge, TeamRating}.
 
 
 get_stat_test() ->
@@ -69,7 +83,15 @@ get_stat_test() ->
 
 
 filter_sick_players(Champ) ->
-    Champ.
+    lists:filtermap(fun filter_players/1, Champ).
+
+filter_players({team, TeamName, Players}) ->
+    PlayersUpdate = lists:filter(fun({player, _, _, _, HP}) -> HP >= 50 end, Players),
+    if 
+        length(PlayersUpdate) >= 5 -> {true, {team, TeamName, PlayersUpdate}};
+        true -> false
+    end.
+
 
 
 filter_sick_players_test() ->
@@ -105,7 +127,11 @@ filter_sick_players_test() ->
 
 
 make_pairs(Team1, Team2) ->
-    [].
+    {team, _, First_Team_Players} = Team1,
+    {team, _, Second_Team_Players} = Team2,
+    [{Name1, Name2} || {player, Name1, _, Rating1, _} <- First_Team_Players,
+                        {player, Name2, _, Rating2, _} <- Second_Team_Players, 
+                        Rating1 + Rating2 > 600].
 
 
 make_pairs_test() ->

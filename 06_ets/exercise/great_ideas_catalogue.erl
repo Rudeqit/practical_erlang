@@ -37,20 +37,44 @@ init() ->
 
 
 add_idea(Id, Title, Author, Rating, Description) ->
-    ok.
+    ets:insert(great_ideas_table, #idea{id = Id, title = Title, author = Author,
+                                        rating = Rating, description = Description}).
 
 
 get_idea(Id) ->
-    not_found.
+    case ets:lookup(great_ideas_table, Id) of
+        [Idea] ->
+            {ok, Idea};
+        [] ->
+            not_found
+    end.                 
 
 
 ideas_by_author(Author) ->
-    [].
+    ets:match_object(great_ideas_table, {'_', '_', '_', Author, '_', '_'}).
 
 
 ideas_by_rating(Rating) ->
-    [].
+    MS = ets:fun2ms(fun(Idea = {_, _, _, _, Rt, _}) when Rt >= Rating -> Idea end),
+    ets:select(great_ideas_table, MS).
 
-
+%% It's fucking bullshit, check solution vesion
 get_authors() ->
-    [].
+    Key1 = ets:first(great_ideas_table),
+    check_next_key(Key1, []).
+
+check_next_key('$end_of_table', Acc) -> 
+    lists:sort(fun({N1, I},{N2, I}) -> N1 < N2;
+                  ({_, I1},{_, I2}) -> I1 > I2 end,
+                Acc);
+check_next_key(Key, Acc) ->
+    [{_, Id, _, Author, _, _}] = ets:match_object(great_ideas_table, {'_', Key, '_', '_', '_', '_'}),
+    case check_author(Author, Acc) of
+        false -> check_next_key(ets:next(great_ideas_table, Id), 
+            [{Author, length(ideas_by_author(Author))}|Acc]); 
+        true -> check_next_key(ets:next(great_ideas_table, Id), Acc)
+    end.
+
+check_author(_, []) -> false;
+check_author(Author, [{Author, _} | _]) -> true;
+check_author(Author, [_ | Tail]) -> check_author(Author, Tail).
